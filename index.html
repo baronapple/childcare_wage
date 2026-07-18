@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工资差额 · 退款计算器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEF1ED;
+    --card:#FFFFFF;
+    --ink:#1B2620;
+    --ink-soft:#4B5850;
+    --line:#D3DBD3;
+    --accent:#3E7C59;
+    --accent-soft:#E4EFE8;
+    --warn:#B5651D;
+    --warn-soft:#F6E8DA;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding:32px 16px 64px;
+    line-height:1.5;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+
+  header{margin-bottom:28px;}
+  header .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:32px;
+    margin:0 0 8px;
+    letter-spacing:-.01em;
+  }
+  header p{color:var(--ink-soft);margin:0;font-size:14.5px;max-width:56ch;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 22px;
+    margin-bottom:20px;
+  }
+  .card h2{
+    font-family:'Fraunces',serif;
+    font-size:17px;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  .card .sub{font-size:13px;color:var(--ink-soft);margin:0 0 16px;}
+
+  details.card{padding:0;}
+  details.card > summary{
+    list-style:none;cursor:pointer;
+    padding:18px 22px;
+    display:flex;align-items:center;justify-content:space-between;
+    font-family:'Fraunces',serif;font-weight:600;font-size:17px;
+  }
+  details.card > summary::-webkit-details-marker{display:none;}
+  details.card > summary .arrow{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-soft);
+    transition:transform .2s ease;
+  }
+  details.card[open] > summary .arrow{transform:rotate(90deg);}
+  details.card .inner{padding:0 22px 20px;}
+
+  label{
+    display:block;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+    font-weight:500;
+  }
+  input[type=date], input[type=number], input[type=text]{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:14px;
+    background:#FBFCFB;
+    color:var(--ink);
+  }
+  input:focus{outline:2px solid var(--accent);outline-offset:1px;}
+
+  .field-row{display:flex;gap:12px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap;}
+  .field-row .f{flex:1;min-width:120px;}
+
+  /* 老板时薪 */
+  .boss-rate{max-width:220px;}
+
+  /* 政府工资分段表 */
+  .seg-table{width:100%;border-collapse:collapse;}
+  .seg-table th{
+    text-align:left;font-size:11.5px;color:var(--ink-soft);
+    font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+    padding:0 8px 6px 0;
+  }
+  .seg-row{margin-bottom:10px;display:grid;grid-template-columns:1fr 1fr 100px 32px;gap:8px;align-items:end;}
+  .seg-row input{font-size:13px;padding:8px;}
+  .del-btn, .del-seg{
+    background:none;border:1px solid var(--line);border-radius:8px;
+    color:var(--warn);width:32px;height:36px;cursor:pointer;font-size:16px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .del-btn:hover, .del-seg:hover{background:var(--warn-soft);}
+
+  .add-btn{
+    background:var(--accent-soft);
+    color:var(--accent);
+    border:1px dashed var(--accent);
+    border-radius:8px;
+    padding:9px 14px;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .add-btn:hover{background:#D9EBE1;}
+
+  /* 工作记录条目 */
+  .entry-row{
+    display:grid;
+    grid-template-columns:1fr 1fr 110px 32px;
+    gap:8px;
+    margin-bottom:10px;
+    align-items:end;
+  }
+  .entry-row .warn-tag{
+    grid-column:1 / -1;
+    font-size:12px;color:var(--warn);
+    background:var(--warn-soft);
+    border-radius:6px;padding:5px 8px;margin-top:-4px;
+  }
+
+  /* 收据 */
+  .receipt-wrap{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:0;
+    overflow:hidden;
+  }
+  .receipt-top{
+    height:14px;
+    background-image: radial-gradient(circle at 8px 0, transparent 7px, var(--card) 7.5px);
+    background-size:16px 14px;
+    background-position:0 -7px;
+  }
+  .receipt{
+    font-family:'IBM Plex Mono',monospace;
+    padding:24px 26px 26px;
+    font-size:13.5px;
+  }
+  .receipt h3{
+    font-family:'Fraunces',serif;
+    font-size:19px;font-weight:600;
+    margin:0 0 2px;text-align:center;
+  }
+  .receipt .gen-date{
+    text-align:center;color:var(--ink-soft);font-size:11.5px;margin-bottom:16px;
+  }
+  .receipt .dashed{
+    border-top:1px dashed var(--line);
+    margin:12px 0;
+  }
+  .receipt .seg-line{
+    display:flex;justify-content:space-between;gap:12px;
+    padding:6px 0;
+  }
+  .receipt .seg-line .label{color:var(--ink-soft);}
+  .receipt .seg-line .label .range{display:block;font-size:11px;color:#8A968D;}
+  .receipt .seg-line .value{white-space:nowrap;font-weight:500;}
+  .receipt .total-line{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding-top:14px;margin-top:8px;border-top:2px solid var(--ink);
+  }
+  .receipt .total-line .t-label{font-family:'Fraunces',serif;font-size:16px;font-weight:600;}
+  .receipt .total-line .t-value{
+    font-family:'Fraunces',serif;font-size:26px;font-weight:700;color:var(--accent);
+  }
+  .receipt .empty{color:var(--ink-soft);text-align:center;padding:20px 0;font-family:'Inter',sans-serif;font-size:13.5px;}
+  .receipt .uncategorized{
+    margin-top:10px;font-size:12px;color:var(--warn);
+    background:var(--warn-soft);padding:8px 10px;border-radius:6px;
+    font-family:'Inter',sans-serif;
+  }
+
+  .foot-note{font-size:11.5px;color:var(--ink-soft);text-align:center;margin-top:18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Wage Refund · 工资差额计算</div>
+    <h1>该退多少钱？</h1>
+    <p>老板按 38.3/小时 支付工资，但政府规定的最低工资在这段时间内变了几次。填入每一段的工作时间和小时数，下面自动按日期分段计算差额，给出总退款金额。</p>
+  </header>
+
+  <!-- 设置：老板时薪 + 政府分段工资 -->
+  <details class="card" open id="settingsCard">
+    <summary>设置 · 时薪与政府分段标准 <span class="arrow">▸</span></summary>
+    <div class="inner">
+      <div class="field-row">
+        <div class="f boss-rate">
+          <label>老板支付的实际时薪 (元/小时)</label>
+          <input type="number" id="bossRate" step="0.01" value="38.3">
+        </div>
+      </div>
+
+      <div class="sub" style="margin-top:8px;">政府规定的最低工资分段（按生效日期，按顺序排列；最后一段可不填结束日期，表示持续生效）</div>
+      <div id="segList"></div>
+      <button class="add-btn" id="addSeg" type="button">+ 添加一段工资标准</button>
+    </div>
+  </details>
+
+  <!-- 工作时间记录 -->
+  <div class="card">
+    <h2>工作时间记录</h2>
+    <p class="sub">每条记录填一段连续的工作时期（开始日期 → 结束日期）和这段时间内的总工作小时数。如果这段时期跨越了政府工资调整的日期，系统会按天数比例自动拆分。</p>
+    <div id="entryList"></div>
+    <button class="add-btn" id="addEntry" type="button">+ 添加一条工作记录</button>
+  </div>
+
+  <!-- 结果：收据样式 -->
+  <div class="receipt-wrap">
+    <div class="receipt-top"></div>
+    <div class="receipt" id="receiptOut"></div>
+  </div>
+
+  <div class="foot-note">金额按天数比例分摊估算，假设每天工作小时数在该记录时期内均匀分布。</div>
+
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+let segments = [
+  {start:'2026-03-01', end:'2026-06-29', rate:34.78},
+  {start:'2026-06-30', end:'2026-06-30', rate:36.52},
+  {start:'2026-07-01', end:'', rate:38.25},
+];
+
+let entries = [
+  {start:'', end:'', hours:''}
+];
+
+function fmt(n){
+  return n.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function renderSegments(){
+  const list = $('segList');
+  list.innerHTML = '';
+  segments.forEach((seg, i) => {
+    const row = document.createElement('div');
+    row.className = 'seg-row';
+    row.innerHTML = `
+      <div>
+        <label>${i===0?'生效开始日期':'生效开始日期'}</label>
+        <input type="date" data-i="${i}" data-field="start" value="${seg.start}">
+      </div>
+      <div>
+        <label>结束日期（可留空=持续）</label>
+        <input type="date" data-i="${i}" data-field="end" value="${seg.end}">
+      </div>
+      <div>
+        <label>政府工资</label>
+        <input type="number" step="0.01" data-i="${i}" data-field="rate" value="${seg.rate}">
+      </div>
+      <button class="del-seg" data-i="${i}" title="删除">✕</button>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      const i = +e.target.dataset.i;
+      const field = e.target.dataset.field;
+      let val = e.target.value;
+      if(field === 'rate') val = parseFloat(val);
+      segments[i][field] = val;
+      compute();
+    });
+  });
+  list.querySelectorAll('.del-seg').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const i = +e.currentTarget.dataset.i;
+      segments.splice(i,1);
+      renderSegments();
+      compute();
+    });
+  });
+}
+
+function renderEntries(){
+  const list = $('entryList');
+  list.innerHTML = '';
+  entries.forEach((en, i) => {
+    const row = document.createElement('div');
+    row.className = 'entry-row';
+    row.innerHTML = `
+      <div>
+        <label>开始日期</label>
+        <input type="date" data-i="${i}" data-field="start" value="${en.start}">
+      </div>
+      <div>
+        <label>结束日期</label>
+        <input type="date" data-i="${i}" data-field="end" value="${en.end}">
+      </div>
+      <div>
+        <label>总工作小时</label>
+        <input type="number" step="0.25" placeholder="小时" data-i="${i}" data-field="hours" value="${en.hours}">
+      </div>
+      <button class="del-btn" data-i="${i}" title="删除">✕</button>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      const i = +e.target.dataset.i;
+      const field = e.target.dataset.field;
+      let val = e.target.value;
+      if(field === 'hours') val = val === '' ? '' : parseFloat(val);
+      entries[i][field] = val;
+      compute();
+    });
+  });
+  list.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const i = +e.currentTarget.dataset.i;
+      entries.splice(i,1);
+      if(entries.length === 0) entries.push({start:'',end:'',hours:''});
+      renderEntries();
+      compute();
+    });
+  });
+}
+
+$('addSeg').addEventListener('click', () => {
+  segments.push({start:'', end:'', rate:0});
+  renderSegments();
+  compute();
+});
+$('addEntry').addEventListener('click', () => {
+  entries.push({start:'', end:'', hours:''});
+  renderEntries();
+  compute();
+});
+
+function dayCount(s, e){
+  const sd = new Date(s+'T00:00:00');
+  const ed = new Date(e+'T00:00:00');
+  return Math.round((ed - sd) / 86400000) + 1;
+}
+
+function overlapDays(aStart, aEnd, bStart, bEnd){
+  const s = new Date(Math.max(new Date(aStart+'T00:00:00'), new Date(bStart+'T00:00:00')));
+  const e = new Date(Math.min(new Date(aEnd+'T00:00:00'), new Date(bEnd+'T00:00:00')));
+  if(s > e) return 0;
+  return Math.round((e - s) / 86400000) + 1;
+}
+
+function compute(){
+  const bossRate = parseFloat($('bossRate').value) || 0;
+  const validSegs = segments.filter(s => s.start && s.rate !== '' && !isNaN(s.rate));
+  // sort by start date
+  const sortedSegs = [...validSegs].sort((a,b) => a.start.localeCompare(b.start));
+
+  // resolve open-ended segment end to a far future date for math, keep '' for display
+  const FAR = '2099-12-31';
+
+  const segTotals = sortedSegs.map(s => ({...s, hours:0}));
+  let uncategorizedHours = 0;
+  let hasAnyValidEntry = false;
+
+  entries.forEach(en => {
+    if(!en.start || !en.end || en.hours === '' || isNaN(en.hours)) return;
+    if(en.start > en.end) return;
+    hasAnyValidEntry = true;
+    const totalDays = dayCount(en.start, en.end);
+    let coveredDays = 0;
+
+    segTotals.forEach(seg => {
+      const segEnd = seg.end || FAR;
+      const od = overlapDays(en.start, en.end, seg.start, segEnd);
+      if(od > 0){
+        coveredDays += od;
+        const hrs = en.hours * (od / totalDays);
+        seg.hours += hrs;
+      }
+    });
+
+    if(coveredDays < totalDays){
+      const uncoveredDays = totalDays - coveredDays;
+      uncategorizedHours += en.hours * (uncoveredDays / totalDays);
+    }
+  });
+
+  renderReceipt(bossRate, segTotals, uncategorizedHours, hasAnyValidEntry);
+}
+
+function renderReceipt(bossRate, segTotals, uncategorizedHours, hasAnyValidEntry){
+  const out = $('receiptOut');
+
+  if(!hasAnyValidEntry){
+    out.innerHTML = `
+      <h3>退款清单</h3>
+      <div class="gen-date">填写上方的工作时间记录后，这里会自动生成</div>
+      <div class="empty">暂无有效记录</div>
+    `;
+    return;
+  }
+
+  let grandTotal = 0;
+  let lines = '';
+  segTotals.forEach(seg => {
+    const diff = bossRate - seg.rate;
+    const subtotal = seg.hours * diff;
+    grandTotal += subtotal;
+    if(seg.hours <= 0) return;
+    const rangeLabel = seg.end ? `${seg.start} 至 ${seg.end}` : `${seg.start} 起`;
+    lines += `
+      <div class="seg-line">
+        <span class="label">${fmt(seg.hours)} 小时 × (${fmt(bossRate)} − ${fmt(seg.rate)})
+          <span class="range">${rangeLabel} · 政府工资 ${fmt(seg.rate)}</span>
+        </span>
+        <span class="value">$${fmt(subtotal)}</span>
+      </div>
+    `;
+  });
+
+  if(!lines){
+    lines = `<div class="empty">记录的日期不在任何已设置的工资分段范围内</div>`;
+  }
+
+  let uncatBlock = '';
+  if(uncategorizedHours > 0.001){
+    uncatBlock = `<div class="uncategorized">⚠ 有 ${fmt(uncategorizedHours)} 小时不在任何已设置的政府工资分段日期范围内，未计入总额。请检查分段设置或工作日期。</div>`;
+  }
+
+  const today = new Date();
+  const dateStr = today.toISOString().slice(0,10);
+
+  out.innerHTML = `
+    <h3>退款清单</h3>
+    <div class="gen-date">生成日期 ${dateStr}</div>
+    <div class="dashed"></div>
+    ${lines}
+    <div class="total-line">
+      <span class="t-label">应退总额</span>
+      <span class="t-value">$${fmt(grandTotal)}</span>
+    </div>
+    ${uncatBlock}
+  `;
+}
+
+// init
+renderSegments();
+renderEntries();
+compute();
+</script>
+</body>
+</html>
